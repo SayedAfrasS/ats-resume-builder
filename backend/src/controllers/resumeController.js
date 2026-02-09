@@ -42,29 +42,36 @@ const hiringPredictions =
 
 
     // STEP 2 — Store in database
-    const result = await pool.query(
-      `INSERT INTO resumes
-(user_id, job_role, raw_input, ai_generated, ats_score)
-VALUES ($1, $2, $3, $4, $5)
+    let result = { rows: [] };
+    try {
+        result = await pool.query(
+        `INSERT INTO resumes
+    (user_id, job_role, raw_input, ai_generated, ats_score)
+    VALUES ($1, $2, $3, $4, $5)
 
-       RETURNING *`,
-      [user_id, job_role, raw_input, aiContent, atsResult.totalScore]
-    );
+        RETURNING *`,
+        [user_id, job_role, raw_input, aiContent, atsResult.totalScore]
+        );
+    } catch (dbError) {
+        console.error("Database error:", dbError.message);
+        // Continue without saving to DB
+    }
 
-res.status(201).json({
-  message: "Resume created with AI + ATS + Company Match",
+    res.status(201).json({
+      message: "Resume created with AI + ATS + Company Match",
 
-  ats: atsResult,
+      ats: atsResult,
 
-  improvements: {
-    missingSkills,
-    suggestions
-  },
+      improvements: {
+        missingSkills,
+        suggestions
+      },
 
-  companyMatches: hiringPredictions,
+      companyMatches: hiringPredictions,
 
-  data: result.rows[0]
-});
+      data: result.rows[0] || { ai_generated: JSON.stringify(aiContent) }, // Fallback if DB fails
+      warning: result.rows.length === 0 ? "Failed to save to database" : null
+    });
 
 
   } catch (error) {
@@ -87,5 +94,33 @@ exports.getResume = async (req, res) => {
 
   } catch (error) {
     res.status(500).json({ error: "Server error" });
+  }
+};
+
+exports.analyzeResume = async (req, res) => {
+  try {
+    const { job_role, content } = req.body;
+    
+    // content is expected to be the structured JSON of the resume
+    const atsResult = atsService.calculateATSScore(job_role, content);
+    
+    const missingSkills = improvementService.detectSkillGaps(job_role, content);
+    
+    const suggestions = improvementService.generateSuggestions(
+      atsResult,
+      missingSkills
+    );
+
+    res.json({
+      ats: atsResult,
+      improvements: {
+        missingSkills,
+        suggestions
+      }
+    });
+
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: "Analysis failed" });
   }
 };
