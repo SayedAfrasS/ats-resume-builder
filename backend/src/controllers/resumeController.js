@@ -4,7 +4,7 @@ const atsService = require("../services/atsService");
 const improvementService =  require("../services/improvementService");
 const companyService =  require("../services/companyService");
 const atsEngine = require("../services/atsEngineService");
-const { PDFParse } = require("pdf-parse");
+const pdfParse = require("pdf-parse");
 
 
 
@@ -113,9 +113,38 @@ exports.analyzeResume = async (req, res) => {
       const mime = req.file.mimetype;
 
       if (mime === "application/pdf") {
-        const parser = new PDFParse({ data: buffer });
-        const pdfData = await parser.getText();
-        resumeText = pdfData.text || "";
+        // Try class-based API (pdf-parse v2)
+        try {
+          if (pdfParse.PDFParse) {
+            const parser = new pdfParse.PDFParse({ data: buffer });
+            const result = await parser.getText();
+            resumeText = typeof result === "string" ? result : (result?.text || "");
+          } else {
+            // Fallback: function-based API (pdf-parse v1 style)
+            const result = await pdfParse(buffer);
+            resumeText = result.text || "";
+          }
+        } catch (pdfErr) {
+          // Last resort: try function-based call directly
+          try {
+            const result = await pdfParse(buffer);
+            resumeText = result.text || "";
+          } catch (_) {
+            resumeText = "";
+          }
+        }
+
+        // If extraction still empty, try raw buffer text extraction
+        if (!resumeText || resumeText.trim().length < 10) {
+          const rawText = buffer.toString("utf-8")
+            .replace(/<[^>]+>/g, " ")
+            .replace(/[^\x20-\x7E\n\r\t]/g, " ")
+            .replace(/\s+/g, " ")
+            .trim();
+          if (rawText.length > resumeText.trim().length) {
+            resumeText = rawText;
+          }
+        }
       } else if (
         mime === "application/vnd.openxmlformats-officedocument.wordprocessingml.document" ||
         mime === "application/msword"
@@ -132,7 +161,7 @@ exports.analyzeResume = async (req, res) => {
         : JSON.stringify(req.body.content);
     }
 
-    if (!resumeText || resumeText.trim().length < 30) {
+    if (!resumeText || resumeText.trim().length < 10) {
       return res.status(400).json({ error: "Resume content is too short or empty. Upload a valid file." });
     }
 
