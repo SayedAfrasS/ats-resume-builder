@@ -1,7 +1,7 @@
 import * as React from "react"
 import { cn } from "@/lib/utils"
 
-const Badge = React.forwardRef<HTMLSpanElement, React.HTMLAttributes<HTMLSpanElement> & { variant?: "default" | "secondary" | "success" | "destructive" | "outline" }>(
+const Badge = React.forwardRef<HTMLSpanElement, React.HTMLAttributes<HTMLSpanElement> & { variant?: "default" | "secondary" | "success" | "destructive" | "warning" | "outline" }>(
   ({ className, variant = "default", ...props }, ref) => {
     return (
       <span
@@ -13,6 +13,7 @@ const Badge = React.forwardRef<HTMLSpanElement, React.HTMLAttributes<HTMLSpanEle
             "bg-slate-100 text-slate-700": variant === "secondary",
             "bg-green-100 text-green-700": variant === "success",
             "bg-red-100 text-red-700": variant === "destructive",
+            "bg-amber-100 text-amber-700": variant === "warning",
             "border border-slate-200 text-slate-700": variant === "outline",
           },
           className

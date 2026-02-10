@@ -18,7 +18,7 @@ export default function SignupPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!name || !email || !password) {
       toast.error("Please fill in all fields");
@@ -29,11 +29,19 @@ export default function SignupPage() {
       return;
     }
     setLoading(true);
-    setTimeout(() => {
-      signup(name, email, password);
-      toast.success("Account created! Welcome aboard!");
-      router.push("/dashboard");
-    }, 800);
+    try {
+      const result = await signup(name, email, password);
+      if (result.success) {
+        toast.success("Account created! Welcome aboard!");
+        router.push("/dashboard");
+      } else {
+        toast.error(result.error || "Signup failed");
+      }
+    } catch {
+      toast.error("Signup failed. Check if backend is running.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (

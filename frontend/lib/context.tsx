@@ -1,6 +1,7 @@
 "use client";
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from "react";
+import { loginUser, signupUser, getUserResumes, getUserAnalyses } from "@/lib/api";
 
 export interface UserProfile {
   id: string;
@@ -77,11 +78,15 @@ export interface AppState {
   companyMatches: any[];
   setCompanyMatches: (matches: any[]) => void;
   isLoggedIn: boolean;
-  login: (email: string, password: string) => void;
-  signup: (name: string, email: string, password: string) => void;
+  login: (email: string, password: string) => Promise<{ success: boolean; error?: string }>;
+  signup: (name: string, email: string, password: string) => Promise<{ success: boolean; error?: string }>;
   logout: () => void;
   savedResumes: any[];
   setSavedResumes: (resumes: any[]) => void;
+  loadUserResumes: () => Promise<void>;
+  userAnalyses: any[];
+  setUserAnalyses: (analyses: any[]) => void;
+  loadUserAnalyses: () => Promise<void>;
 }
 
 const defaultResumeData: ResumeData = {
@@ -112,6 +117,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [improvements, setImprovements] = useState<any>(null);
   const [companyMatches, setCompanyMatches] = useState<any[]>([]);
   const [savedResumes, setSavedResumes] = useState<any[]>([]);
+  const [userAnalyses, setUserAnalyses] = useState<any[]>([]);
 
   // Check localStorage on mount
   useEffect(() => {
@@ -127,35 +133,93 @@ export function AppProvider({ children }: { children: ReactNode }) {
         setSavedResumes(JSON.parse(storedResumes));
       } catch { }
     }
+    const storedAnalyses = localStorage.getItem("ats_analyses");
+    if (storedAnalyses) {
+      try {
+        setUserAnalyses(JSON.parse(storedAnalyses));
+      } catch { }
+    }
   }, []);
+
+  // Load user resumes from DB when user logs in
+  useEffect(() => {
+    if (user?.id) {
+      loadUserResumes();
+      loadUserAnalyses();
+    }
+  }, [user?.id]);
 
   const isLoggedIn = !!user;
 
-  const login = (email: string, _password: string) => {
-    const u: UserProfile = {
-      id: "user-" + Date.now(),
-      name: email.split("@")[0],
-      email,
-      plan: "Free",
-    };
-    setUser(u);
-    localStorage.setItem("ats_user", JSON.stringify(u));
+  const login = async (email: string, password: string): Promise<{ success: boolean; error?: string }> => {
+    try {
+      const response = await loginUser({ email, password });
+      const u: UserProfile = {
+        id: String(response.user.id),
+        name: response.user.name,
+        email: response.user.email,
+        plan: response.user.plan || "Free",
+      };
+      setUser(u);
+      localStorage.setItem("ats_user", JSON.stringify(u));
+      return { success: true };
+    } catch (error: any) {
+      const msg = error?.response?.data?.error || "Login failed. Check if backend is running.";
+      console.error("Login failed:", msg);
+      return { success: false, error: msg };
+    }
   };
 
-  const signup = (name: string, email: string, _password: string) => {
-    const u: UserProfile = {
-      id: "user-" + Date.now(),
-      name,
-      email,
-      plan: "Free",
-    };
-    setUser(u);
-    localStorage.setItem("ats_user", JSON.stringify(u));
+  const signup = async (name: string, email: string, password: string): Promise<{ success: boolean; error?: string }> => {
+    try {
+      const response = await signupUser({ name, email, password });
+      const u: UserProfile = {
+        id: String(response.user.id),
+        name: response.user.name,
+        email: response.user.email,
+        plan: response.user.plan || "Free",
+      };
+      setUser(u);
+      localStorage.setItem("ats_user", JSON.stringify(u));
+      return { success: true };
+    } catch (error: any) {
+      const msg = error?.response?.data?.error || "Signup failed. Check if backend is running.";
+      console.error("Signup failed:", msg);
+      return { success: false, error: msg };
+    }
   };
 
   const logout = () => {
     setUser(null);
+    setSavedResumes([]);
+    setUserAnalyses([]);
     localStorage.removeItem("ats_user");
+    localStorage.removeItem("ats_resumes");
+    localStorage.removeItem("ats_analyses");
+  };
+
+  const loadUserResumes = async () => {
+    if (!user?.id) return;
+    try {
+      const response = await getUserResumes(user.id);
+      const resumes = response.resumes || [];
+      setSavedResumes(resumes);
+      localStorage.setItem("ats_resumes", JSON.stringify(resumes));
+    } catch (error) {
+      console.error("Failed to load user resumes:", error);
+    }
+  };
+
+  const loadUserAnalyses = async () => {
+    if (!user?.id) return;
+    try {
+      const response = await getUserAnalyses(user.id);
+      const analyses = response.analyses || [];
+      setUserAnalyses(analyses);
+      localStorage.setItem("ats_analyses", JSON.stringify(analyses));
+    } catch (error) {
+      console.error("Failed to load user analyses:", error);
+    }
   };
 
   const updateResumeField = (field: string, value: any) => {
@@ -184,6 +248,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
         logout,
         savedResumes,
         setSavedResumes,
+        loadUserResumes,
+        userAnalyses,
+        setUserAnalyses,
+        loadUserAnalyses,
       }}
     >
       {children}

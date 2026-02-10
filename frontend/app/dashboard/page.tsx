@@ -13,16 +13,91 @@ import {
 import { useApp } from "@/lib/context";
 
 export default function DashboardPage() {
-  const { user, atsResult } = useApp();
-  const score = atsResult?.totalScore || 85;
+  const { user, atsResult, savedResumes, companyMatches, improvements, userAnalyses } = useApp();
+  const latestAnalysis = userAnalyses?.[0];
+  const score = latestAnalysis?.ats_score || atsResult?.totalScore || 0;
   const userName = user?.name || "Alex";
+  const resumeCount = savedResumes?.length || 0;
+  const analysisCount = userAnalyses?.length || 0;
+
+  // Get the latest resume info
+  const latestResume = savedResumes?.[0];
+  const latestResumeTitle = latestResume
+    ? `${latestResume.job_role || "Resume"}_v${resumeCount}.pdf`
+    : null;
+  const latestResumeTime = latestResume?.created_at
+    ? new Date(latestResume.created_at).toLocaleString()
+    : null;
+
+  // Real company matches for matched jobs section
+  const matchedJobs = companyMatches?.length > 0
+    ? companyMatches.slice(0, 2).map((m: any) => ({
+        company: m.company,
+        role: latestResume?.job_role || "Software Engineer",
+        match: m.matchScore || m.hiringProbability || 0,
+        color: "bg-slate-900",
+      }))
+    : [
+        { company: "Google", role: "Senior Product Designer", match: 92, color: "bg-slate-900" },
+        { company: "Stripe", role: "UX Engineer", match: 88, color: "bg-indigo-600" },
+      ];
+
+  const analysisIssues: string[] = Array.isArray(latestAnalysis?.issues) ? latestAnalysis.issues : [];
+  const analysisBenefits: string[] = Array.isArray(latestAnalysis?.benefits) ? latestAnalysis.benefits : [];
+
+  // Build improvement suggestions from latest analysis
+  const improvementItems = analysisIssues.length > 0 || analysisBenefits.length > 0
+    ? [
+        ...analysisIssues.slice(0, 3).map((issue: string) => ({
+          icon: AlertCircle,
+          bg: "bg-amber-50",
+          border: "border-amber-100",
+          color: "text-amber-500",
+          title: issue.split(".")[0],
+          desc: issue,
+        })),
+        ...analysisBenefits.slice(0, 2).map((benefit: string) => ({
+          icon: CheckCircle2,
+          bg: "bg-blue-50",
+          border: "border-blue-100",
+          color: "text-blue-500",
+          title: benefit.split(".")[0],
+          desc: benefit,
+        })),
+      ]
+    : (improvements?.suggestions?.length > 0
+        ? [
+            ...improvements.suggestions.slice(0, 2).map((s: string) => ({
+              icon: AlertCircle,
+              bg: "bg-amber-50",
+              border: "border-amber-100",
+              color: "text-amber-500",
+              title: s.split(".")[0],
+              desc: s,
+            })),
+            ...(improvements.missingSkills?.length > 0
+              ? [{
+                  icon: Lightbulb,
+                  bg: "bg-blue-50",
+                  border: "border-blue-100",
+                  color: "text-blue-500",
+                  title: `Add missing skills: ${improvements.missingSkills.slice(0, 3).join(", ")}`,
+                  desc: `These skills appear in 85% of matched job descriptions for your target role.`,
+                }]
+              : []),
+          ]
+        : [
+            { icon: AlertCircle, bg: "bg-amber-50", border: "border-amber-100", color: "text-amber-500", title: "Add more quantifiable achievements", desc: 'Resumes with "Increased sales by 30%" perform 40% better.' },
+            { icon: CheckCircle2, bg: "bg-blue-50", border: "border-blue-100", color: "text-blue-500", title: "Include 'Python' in skills section", desc: "We detected this keyword in 85% of your matched job descriptions." },
+            { icon: Lightbulb, bg: "bg-slate-50", border: "border-slate-100", color: "text-purple-500", title: "Improve job title clarity", desc: '"Creative Generalist" is too vague for most ATS parsers.' },
+          ]);
 
   return (
     <main className="flex-1 overflow-y-auto p-6 lg:p-8 page-transition">
       {/* Welcome Bar */}
       <div className="mb-8">
         <h1 className="text-2xl font-bold text-slate-900">Dashboard Overview</h1>
-        <p className="text-slate-500 mt-1">Welcome back, {userName}. Your resume is performing better than 78% of applicants.</p>
+        <p className="text-slate-500 mt-1">Welcome back, {userName}. {resumeCount > 0 ? `You have ${resumeCount} saved resume${resumeCount > 1 ? "s" : ""}.` : "Create your first resume to get started."}</p>
       </div>
 
       {/* Top Row */}
@@ -39,7 +114,7 @@ export default function DashboardPage() {
             <div className="flex items-center justify-between">
               <div>
                 <div className="text-4xl font-bold text-slate-900">{score}%</div>
-                <p className="text-xs text-slate-500 mt-2">Calculated from 4 active resumes</p>
+                <p className="text-xs text-slate-500 mt-2">Based on {analysisCount} resume analys{analysisCount === 1 ? "is" : "es"}</p>
               </div>
               <ScoreRing score={score} size={80} strokeWidth={6} label="" />
             </div>
@@ -57,9 +132,9 @@ export default function DashboardPage() {
                 <FileText className="h-6 w-6 text-blue-600" />
               </div>
               <div className="min-w-0 flex-1">
-                <p className="font-medium text-slate-900 truncate">Senior_Product_Designer_v2.pdf</p>
+                <p className="font-medium text-slate-900 truncate">{latestResumeTitle || "No resumes yet"}</p>
                 <p className="text-xs text-slate-500 flex items-center gap-1 mt-0.5">
-                  <Clock className="h-3 w-3" /> Generated 2 hours ago
+                  <Clock className="h-3 w-3" /> {latestResumeTime || "Create your first resume"}
                 </p>
               </div>
             </div>
@@ -95,30 +170,18 @@ export default function DashboardPage() {
         <Card className="lg:col-span-2">
           <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle className="text-lg">Recommended Improvements</CardTitle>
-            <Badge variant="destructive" className="text-xs">3 Critical Actions</Badge>
+            <Badge variant="destructive" className="text-xs">{Math.max(analysisIssues.length, 1)} Critical Action{analysisIssues.length === 1 ? "" : "s"}</Badge>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="flex items-start gap-3 p-3 rounded-lg bg-amber-50 border border-amber-100">
-              <AlertCircle className="h-5 w-5 text-amber-500 mt-0.5 flex-shrink-0" />
-              <div>
-                <p className="font-medium text-slate-900 text-sm">Add more quantifiable achievements</p>
-                <p className="text-xs text-slate-500 mt-0.5">Resumes with &quot;Increased sales by 30%&quot; perform 40% better.</p>
+            {improvementItems.map((item: any, i: number) => (
+              <div key={i} className={`flex items-start gap-3 p-3 rounded-lg ${item.bg} border ${item.border}`}>
+                <item.icon className={`h-5 w-5 ${item.color} mt-0.5 flex-shrink-0`} />
+                <div>
+                  <p className="font-medium text-slate-900 text-sm">{item.title}</p>
+                  <p className="text-xs text-slate-500 mt-0.5">{item.desc}</p>
+                </div>
               </div>
-            </div>
-            <div className="flex items-start gap-3 p-3 rounded-lg bg-blue-50 border border-blue-100">
-              <CheckCircle2 className="h-5 w-5 text-blue-500 mt-0.5 flex-shrink-0" />
-              <div>
-                <p className="font-medium text-slate-900 text-sm">Include &apos;Python&apos; in skills section</p>
-                <p className="text-xs text-slate-500 mt-0.5">We detected this keyword in 85% of your matched job descriptions.</p>
-              </div>
-            </div>
-            <div className="flex items-start gap-3 p-3 rounded-lg bg-slate-50 border border-slate-100">
-              <Lightbulb className="h-5 w-5 text-purple-500 mt-0.5 flex-shrink-0" />
-              <div>
-                <p className="font-medium text-slate-900 text-sm">Improve job title clarity</p>
-                <p className="text-xs text-slate-500 mt-0.5">Your title &quot;Creative Generalist&quot; is too vague for most ATS parsers.</p>
-              </div>
-            </div>
+            ))}
           </CardContent>
         </Card>
 
@@ -159,13 +222,10 @@ export default function DashboardPage() {
             <Link href="/jobs" className="text-sm text-blue-600 hover:underline">View All</Link>
           </CardHeader>
           <CardContent className="space-y-3">
-            {[
-              { company: "Google", role: "Senior Product Designer", match: 92, color: "bg-slate-900" },
-              { company: "Stripe", role: "UX Engineer", match: 88, color: "bg-indigo-600" },
-            ].map((job, i) => (
+            {matchedJobs.map((job: any, i: number) => (
               <div key={i} className="flex items-center justify-between p-3 rounded-lg border border-slate-100 hover:border-slate-200 transition-colors">
                 <div className="flex items-center gap-3">
-                  <div className={`h-10 w-10 rounded-lg ${job.color} flex items-center justify-center text-white font-bold text-sm`}>{job.company[0]}</div>
+                  <div className={`h-10 w-10 rounded-lg ${job.color || "bg-slate-900"} flex items-center justify-center text-white font-bold text-sm`}>{job.company[0]}</div>
                   <div>
                     <p className="font-medium text-slate-900 text-sm">{job.role}</p>
                     <p className="text-xs text-slate-500">{job.company} • Remote</p>
@@ -180,20 +240,20 @@ export default function DashboardPage() {
         <Card>
           <CardHeader><CardTitle className="text-lg">Recent Activity</CardTitle></CardHeader>
           <CardContent className="space-y-4">
-            {[
-              { icon: CheckCircle2, color: "text-green-500", title: "Resume Analyzed", desc: "Marketing_Resume_final.pdf", time: "2h ago" },
-              { icon: FileText, color: "text-blue-500", title: "Resume Created", desc: "Senior_Product_Designer_v2.pdf", time: "5h ago" },
-              { icon: Briefcase, color: "text-purple-500", title: "Account Created", desc: "Welcome to ATS Resume AI", time: "1d ago" },
-            ].map((item, i) => (
-              <div key={i} className="flex items-start gap-3">
-                <item.icon className={`h-5 w-5 ${item.color} mt-0.5`} />
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-slate-900">{item.title}</p>
-                  <p className="text-xs text-slate-500 truncate">{item.desc}</p>
+            {analysisCount > 0 ? (
+              userAnalyses.slice(0, 5).map((item: any, i: number) => (
+                <div key={i} className="flex items-start gap-3">
+                  <CheckCircle2 className="h-5 w-5 text-green-500 mt-0.5" />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-slate-900">Resume Analyzed</p>
+                    <p className="text-xs text-slate-500 truncate">{item.file_name || "Uploaded resume"} • {item.job_role || "Role"} • Score {item.ats_score}%</p>
+                  </div>
+                  <span className="text-xs text-slate-400 flex-shrink-0">{item.created_at ? new Date(item.created_at).toLocaleDateString() : ""}</span>
                 </div>
-                <span className="text-xs text-slate-400 flex-shrink-0">{item.time}</span>
-              </div>
-            ))}
+              ))
+            ) : (
+              <div className="text-sm text-slate-500">No analysis activity yet. Upload a resume to see results here.</div>
+            )}
           </CardContent>
         </Card>
       </div>

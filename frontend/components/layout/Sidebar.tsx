@@ -30,7 +30,7 @@ export function Sidebar() {
           <div className="h-8 w-8 bg-blue-600 rounded-lg flex items-center justify-center">
             <FileText className="h-4 w-4 text-white" />
           </div>
-          <span>ATS Resume AI</span>
+          <span>SpellFolio AI</span>
         </Link>
       </div>
       <nav className="flex-1 space-y-1 px-3 py-4">

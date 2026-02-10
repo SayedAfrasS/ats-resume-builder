@@ -14,7 +14,7 @@ export default function AuthLayout({
           <div className="h-10 w-10 bg-white/20 rounded-lg flex items-center justify-center">
             <FileText className="h-5 w-5 text-white" />
           </div>
-          <span className="text-xl font-bold">ATS Resume AI</span>
+          <span className="text-xl font-bold">SpellFolio AI</span>
         </div>
         <div>
           <h1 className="text-4xl font-bold mb-4 leading-tight">
@@ -40,7 +40,7 @@ export default function AuthLayout({
             </div>
           </div>
         </div>
-        <p className="text-blue-300 text-sm">&copy; 2026 ATS Resume AI. All rights reserved.</p>
+        <p className="text-blue-300 text-sm">&copy; 2026 SpellFolio AI. All rights reserved.</p>
       </div>
 
       {/* Right side - Auth Form */}
@@ -50,7 +50,7 @@ export default function AuthLayout({
             <div className="h-10 w-10 bg-blue-600 rounded-lg flex items-center justify-center">
               <FileText className="h-5 w-5 text-white" />
             </div>
-            <span className="text-xl font-bold text-slate-900">ATS Resume AI</span>
+            <span className="text-xl font-bold text-slate-900">SpellFolio AI</span>
           </div>
           <div className="bg-white p-8 rounded-xl shadow-sm border border-slate-200">
             {children}

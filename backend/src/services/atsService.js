@@ -16,8 +16,15 @@ function checkFormatting(aiContent) {
   let score = 100;
   let issues = [];
 
-  aiContent.projects.forEach(project => {
-    project.bullets?.forEach(bullet => {
+  // Guard: if aiContent is a string, try to parse it
+  if (typeof aiContent === "string") {
+    try { aiContent = JSON.parse(aiContent); } catch { aiContent = {}; }
+  }
+
+  const projects = aiContent?.projects || [];
+  projects.forEach(project => {
+    const bullets = project.bullets || [];
+    bullets.forEach(bullet => {
 
       if (bullet.split(" ").length > 25) {
         score -= 5;
@@ -67,7 +74,7 @@ function keywordScore(jobRole, aiContent) {
     if (text.includes(keyword)) matched++;
   });
 
-  const score = (matched / keywords.length) * 100;
+  const score = keywords.length > 0 ? (matched / keywords.length) * 100 : 50;
 
   return { keywordScore: score };
 }

@@ -17,18 +17,26 @@ export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email || !password) {
       toast.error("Please fill in all fields");
       return;
     }
     setLoading(true);
-    setTimeout(() => {
-      login(email, password);
-      toast.success("Welcome back!");
-      router.push("/dashboard");
-    }, 800);
+    try {
+      const result = await login(email, password);
+      if (result.success) {
+        toast.success("Welcome back!");
+        router.push("/dashboard");
+      } else {
+        toast.error(result.error || "Login failed");
+      }
+    } catch {
+      toast.error("Login failed. Check if backend is running.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
