@@ -16,6 +16,7 @@
     "cors": "^2.8.6",
     "dotenv": "^17.2.4",
     "express": "^5.2.1",
+    "firebase": "^12.9.0",
     "groq-sdk": "^0.37.0",
     "multer": "^2.0.2",
     "pdf-parse": "^2.4.5",

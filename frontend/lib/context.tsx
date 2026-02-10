@@ -1,7 +1,9 @@
 "use client";
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from "react";
-import { loginUser, signupUser, getUserResumes, getUserAnalyses } from "@/lib/api";
+import { loginUser, signupUser, googleAuthUser, getUserResumes, getUserAnalyses } from "@/lib/api";
+import { auth, googleProvider } from "@/lib/firebase";
+import { signInWithPopup } from "firebase/auth";
 
 export interface UserProfile {
   id: string;
@@ -80,6 +82,7 @@ export interface AppState {
   isLoggedIn: boolean;
   login: (email: string, password: string) => Promise<{ success: boolean; error?: string }>;
   signup: (name: string, email: string, password: string) => Promise<{ success: boolean; error?: string }>;
+  loginWithGoogle: () => Promise<{ success: boolean; error?: string }>;
   logout: () => void;
   savedResumes: any[];
   setSavedResumes: (resumes: any[]) => void;
@@ -189,6 +192,32 @@ export function AppProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  const loginWithGoogle = async (): Promise<{ success: boolean; error?: string }> => {
+    try {
+      const result = await signInWithPopup(auth, googleProvider);
+      const firebaseUser = result.user;
+      // Send to our backend to create/find user in DB
+      const response = await googleAuthUser({
+        name: firebaseUser.displayName || firebaseUser.email?.split("@")[0] || "User",
+        email: firebaseUser.email || "",
+        firebase_uid: firebaseUser.uid,
+      });
+      const u: UserProfile = {
+        id: String(response.user.id),
+        name: response.user.name,
+        email: response.user.email,
+        plan: response.user.plan || "Free",
+      };
+      setUser(u);
+      localStorage.setItem("ats_user", JSON.stringify(u));
+      return { success: true };
+    } catch (error: any) {
+      console.error("Google login failed:", error);
+      const msg = error?.response?.data?.error || error?.message || "Google sign-in failed";
+      return { success: false, error: msg };
+    }
+  };
+
   const logout = () => {
     setUser(null);
     setSavedResumes([]);
@@ -245,6 +274,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         isLoggedIn,
         login,
         signup,
+        loginWithGoogle,
         logout,
         savedResumes,
         setSavedResumes,

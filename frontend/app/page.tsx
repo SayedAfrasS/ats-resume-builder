@@ -9,7 +9,7 @@ export default function Home() {
       <header className="flex h-16 items-center justify-between px-6 border-b border-slate-100">
         <div className="flex items-center gap-2 font-bold text-xl text-blue-600">
           <FileText className="h-6 w-6" />
-          <span>SpellFolio AI</span>
+          <span>SpellFolio</span>
         </div>
         <nav className="hidden md:flex items-center gap-6 text-sm font-medium text-slate-600">
             <Link href="#features">Features</Link>
@@ -30,7 +30,7 @@ export default function Home() {
       <main className="flex-1">
         <section className="py-20 px-6 text-center">
             <h1 className="text-4xl md:text-6xl font-bold text-slate-900 tracking-tight mb-6">
-                Build an <span className="text-blue-600">ATS-Friendly</span> Resume <br/> in Minutes with SpellFolio AI
+                Build an <span className="text-blue-600">ATS-Friendly</span> Resume <br/> in Minutes with SpellFolio
             </h1>
             <p className="text-lg md:text-xl text-slate-600 max-w-2xl mx-auto mb-10">
                 Stop getting rejected by bots. Our AI-powered resume builder optimizes your resume for Applicant Tracking Systems (ATS) to increase your interview chances.
@@ -82,7 +82,7 @@ export default function Home() {
       </main>
 
       <footer className="bg-white border-t border-slate-100 py-12 px-6 text-center text-slate-500 text-sm">
-        © 2026 SpellFolio AI. All rights reserved.
+        © 2026 SpellFolio. All rights reserved.
       </footer>
     </div>
   );

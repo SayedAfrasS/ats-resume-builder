@@ -9,7 +9,7 @@ app.use(cors());
 app.use(express.json());
 
 app.get("/", (req, res) => {
-  res.send("ATS Resume Builder API Running");
+  res.send("SpellFolio API Running");
 });
 
 // Attempt database connection but don't crash if it fails

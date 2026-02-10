@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, FileText, CheckCircle, Briefcase, Layers, Settings, HelpCircle } from "lucide-react";
+import { LayoutDashboard, FileText, CheckCircle, Briefcase, Layers, Settings, HelpCircle, BookOpen } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useApp } from "@/lib/context";
 
@@ -12,6 +12,7 @@ const navigation = [
   { name: "Analyze Resume", href: "/analyzer", icon: CheckCircle },
   { name: "Templates", href: "/templates", icon: Layers },
   { name: "Job Match", href: "/jobs", icon: Briefcase },
+  { name: "Guide", href: "/guide", icon: BookOpen },
 ];
 
 const bottomNav = [
@@ -30,7 +31,7 @@ export function Sidebar() {
           <div className="h-8 w-8 bg-blue-600 rounded-lg flex items-center justify-center">
             <FileText className="h-4 w-4 text-white" />
           </div>
-          <span>SpellFolio AI</span>
+          <span>SpellFolio</span>
         </Link>
       </div>
       <nav className="flex-1 space-y-1 px-3 py-4">

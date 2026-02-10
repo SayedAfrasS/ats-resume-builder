@@ -116,3 +116,60 @@ exports.login = async (req, res) => {
     res.status(500).json({ error: "Login failed" });
   }
 };
+
+exports.googleAuth = async (req, res) => {
+  try {
+    const { name, email, firebase_uid } = req.body;
+
+    if (!email) {
+      return res.status(400).json({ error: "Email is required" });
+    }
+
+    let user = null;
+
+    try {
+      // Check if user already exists by email
+      const existing = await pool.query(
+        "SELECT id, name, email, created_at FROM users WHERE email = $1",
+        [email]
+      );
+
+      if (existing.rows.length > 0) {
+        // User exists — return them
+        user = existing.rows[0];
+      } else {
+        // Create new user with no password (Google-only)
+        const result = await pool.query(
+          `INSERT INTO users (name, email, password)
+           VALUES ($1, $2, $3)
+           RETURNING id, name, email, created_at`,
+          [name || email.split("@")[0], email, `google:${firebase_uid}`]
+        );
+        user = result.rows[0];
+      }
+    } catch (dbErr) {
+      console.error("DB Google auth failed:", dbErr.message);
+      // Offline fallback
+      user = {
+        id: "offline-" + Date.now(),
+        name: name || email.split("@")[0],
+        email,
+        created_at: new Date().toISOString(),
+      };
+    }
+
+    res.json({
+      message: "Google auth successful",
+      user: {
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        plan: "Free",
+        created_at: user.created_at,
+      },
+    });
+  } catch (error) {
+    console.error("Google auth error:", error);
+    res.status(500).json({ error: "Google authentication failed" });
+  }
+};

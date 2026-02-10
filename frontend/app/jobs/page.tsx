@@ -505,7 +505,7 @@ export default function JobMatchPage() {
 
             {/* Footer */}
             <div className="text-center text-xs text-slate-400 py-8 mt-8 border-t border-slate-100">
-              &copy; 2026 ATS Resume AI. Job data sourced from company career pages. Apply links open in new tabs.
+              &copy; 2026 SpellFolio AI. Job data sourced from company career pages. Apply links open in new tabs.
             </div>
           </>
         )}

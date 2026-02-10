@@ -152,7 +152,7 @@ export default function AnalyzerPage() {
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-2xl font-bold text-slate-900">ATS Resume Analyzer</h1>
+          <h1 className="text-2xl font-bold text-slate-900">SpellFolio Analyzer</h1>
           <p className="text-slate-500 mt-1">
             Upload your resume &amp; select a target role. Our 8-dimension ATS engine scores your resume, shows benefits &amp; issues, and matches you against top companies.
           </p>

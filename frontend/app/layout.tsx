@@ -15,7 +15,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "ATS Resume AI — Build ATS-Friendly Resumes",
+  title: "SpellFolio AI — Build ATS-Friendly Resumes",
   description: "AI-powered resume builder that optimizes your resume for Applicant Tracking Systems",
 };
 

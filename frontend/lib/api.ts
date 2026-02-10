@@ -27,6 +27,15 @@ export const loginUser = async (payload: {
   return response.data;
 };
 
+export const googleAuthUser = async (payload: {
+  name: string;
+  email: string;
+  firebase_uid: string;
+}) => {
+  const response = await api.post("/auth/google", payload);
+  return response.data;
+};
+
 // ─── Resume APIs ─────────────────────────────────────────
 export const createResume = async (payload: {
   user_id: string | number;

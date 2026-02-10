@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useState, useEffect, useCallback } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -8,39 +9,40 @@ import { ScoreRing } from "@/components/ui/score-ring";
 import {
   FileText, ArrowUpRight, AlertCircle, CheckCircle2,
   Briefcase, Download, Upload, Plus, Lightbulb,
-  Clock, Star, BookOpen
+  Clock, Star, BookOpen, MapPin, ExternalLink, Loader2
 } from "lucide-react";
 import { useApp } from "@/lib/context";
+import { getJobMatchData } from "@/lib/api";
 
 export default function DashboardPage() {
-  const { user, atsResult, savedResumes, companyMatches, improvements, userAnalyses } = useApp();
+  const { user, atsResult, savedResumes, improvements, userAnalyses, resumeData } = useApp();
   const latestAnalysis = userAnalyses?.[0];
   const score = latestAnalysis?.ats_score || atsResult?.totalScore || 0;
   const userName = user?.name || "Alex";
   const resumeCount = savedResumes?.length || 0;
   const analysisCount = userAnalyses?.length || 0;
 
-  // Get the latest resume info
-  const latestResume = savedResumes?.[0];
-  const latestResumeTitle = latestResume
-    ? `${latestResume.job_role || "Resume"}_v${resumeCount}.pdf`
-    : null;
-  const latestResumeTime = latestResume?.created_at
-    ? new Date(latestResume.created_at).toLocaleString()
-    : null;
+  // Dynamic matched jobs from DB
+  const [matchedJobs, setMatchedJobs] = useState<any[]>([]);
+  const [jobsLoading, setJobsLoading] = useState(false);
 
-  // Real company matches for matched jobs section
-  const matchedJobs = companyMatches?.length > 0
-    ? companyMatches.slice(0, 2).map((m: any) => ({
-        company: m.company,
-        role: latestResume?.job_role || "Software Engineer",
-        match: m.matchScore || m.hiringProbability || 0,
-        color: "bg-slate-900",
-      }))
-    : [
-        { company: "Google", role: "Senior Product Designer", match: 92, color: "bg-slate-900" },
-        { company: "Stripe", role: "UX Engineer", match: 88, color: "bg-indigo-600" },
-      ];
+  const fetchMatchedJobs = useCallback(async () => {
+    if (!user?.id) return;
+    setJobsLoading(true);
+    try {
+      const role = latestAnalysis?.job_role || resumeData.jobRole || "Software Engineer";
+      const res = await getJobMatchData(user.id, role, resumeData.skills);
+      if (res.success && res.companyMatches?.length > 0) {
+        setMatchedJobs(res.companyMatches.slice(0, 4));
+      }
+    } catch (e) {
+      console.error("Dashboard job match fetch:", e);
+    } finally {
+      setJobsLoading(false);
+    }
+  }, [user?.id, latestAnalysis?.job_role, resumeData.jobRole, resumeData.skills]);
+
+  useEffect(() => { fetchMatchedJobs(); }, [fetchMatchedJobs]);
 
   const analysisIssues: string[] = Array.isArray(latestAnalysis?.issues) ? latestAnalysis.issues : [];
   const analysisBenefits: string[] = Array.isArray(latestAnalysis?.benefits) ? latestAnalysis.benefits : [];
@@ -101,7 +103,7 @@ export default function DashboardPage() {
       </div>
 
       {/* Top Row */}
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 mb-6">
+      <div className="grid gap-6 md:grid-cols-2 mb-6">
         {/* Overall ATS Score */}
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -118,29 +120,6 @@ export default function DashboardPage() {
               </div>
               <ScoreRing score={score} size={80} strokeWidth={6} label="" />
             </div>
-          </CardContent>
-        </Card>
-
-        {/* Last Resume Generated */}
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Last Resume Generated</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="flex items-center gap-4">
-              <div className="h-12 w-12 rounded-lg bg-blue-50 flex items-center justify-center">
-                <FileText className="h-6 w-6 text-blue-600" />
-              </div>
-              <div className="min-w-0 flex-1">
-                <p className="font-medium text-slate-900 truncate">{latestResumeTitle || "No resumes yet"}</p>
-                <p className="text-xs text-slate-500 flex items-center gap-1 mt-0.5">
-                  <Clock className="h-3 w-3" /> {latestResumeTime || "Create your first resume"}
-                </p>
-              </div>
-            </div>
-            <Button variant="link" className="px-0 mt-3 text-blue-600 h-auto text-sm">
-              <Download className="h-3.5 w-3.5 mr-1" /> Download Copy
-            </Button>
           </CardContent>
         </Card>
 
@@ -198,9 +177,11 @@ export default function DashboardPage() {
                 <li className="flex items-start gap-2"><span className="text-blue-200 mt-0.5">•</span>Don&apos;t use ATS-incompatible tables or images</li>
                 <li className="flex items-start gap-2"><span className="text-blue-200 mt-0.5">•</span>Always upload in PDF or .docx format</li>
               </ul>
-              <Button variant="outline" size="sm" className="mt-4 w-full bg-white/10 border-white/20 text-white hover:bg-white/20 hover:text-white">
-                <BookOpen className="h-3.5 w-3.5 mr-1.5" /> Read Full Guide
-              </Button>
+              <Link href="/guide">
+                <Button variant="outline" size="sm" className="mt-4 w-full bg-white/10 border-white/20 text-white hover:bg-white/20 hover:text-white">
+                  <BookOpen className="h-3.5 w-3.5 mr-1.5" /> Read Full Guide
+                </Button>
+              </Link>
             </CardContent>
           </Card>
 
@@ -222,18 +203,43 @@ export default function DashboardPage() {
             <Link href="/jobs" className="text-sm text-blue-600 hover:underline">View All</Link>
           </CardHeader>
           <CardContent className="space-y-3">
-            {matchedJobs.map((job: any, i: number) => (
-              <div key={i} className="flex items-center justify-between p-3 rounded-lg border border-slate-100 hover:border-slate-200 transition-colors">
-                <div className="flex items-center gap-3">
-                  <div className={`h-10 w-10 rounded-lg ${job.color || "bg-slate-900"} flex items-center justify-center text-white font-bold text-sm`}>{job.company[0]}</div>
-                  <div>
-                    <p className="font-medium text-slate-900 text-sm">{job.role}</p>
-                    <p className="text-xs text-slate-500">{job.company} • Remote</p>
+            {jobsLoading ? (
+              <div className="flex items-center justify-center py-6">
+                <Loader2 className="h-5 w-5 animate-spin text-blue-600 mr-2" />
+                <span className="text-sm text-slate-500">Loading matches...</span>
+              </div>
+            ) : matchedJobs.length > 0 ? (
+              matchedJobs.map((job: any, i: number) => (
+                <div key={i} className="flex items-center justify-between p-3 rounded-lg border border-slate-100 hover:border-slate-200 transition-colors">
+                  <div className="flex items-center gap-3">
+                    <div className="h-10 w-10 rounded-lg bg-slate-900 flex items-center justify-center text-white font-bold text-sm">{job.company[0]}</div>
+                    <div>
+                      <p className="font-medium text-slate-900 text-sm">{job.role}</p>
+                      <p className="text-xs text-slate-500 flex items-center gap-1">
+                        {job.company}
+                        {job.location && <><span>•</span><MapPin className="h-3 w-3" />{job.location}</> }
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Badge variant={job.matchScore >= 60 ? "success" : "destructive"}>{job.matchScore}% Match</Badge>
+                    {job.applyLink && (
+                      <a href={job.applyLink} target="_blank" rel="noopener noreferrer">
+                        <ExternalLink className="h-4 w-4 text-slate-400 hover:text-blue-600" />
+                      </a>
+                    )}
                   </div>
                 </div>
-                <Badge variant="success">{job.match}% Match</Badge>
+              ))
+            ) : (
+              <div className="text-center py-6">
+                <Briefcase className="h-8 w-8 text-slate-300 mx-auto mb-2" />
+                <p className="text-sm text-slate-500">Analyze your resume to see personalized job matches.</p>
+                <Link href="/analyzer">
+                  <Button size="sm" variant="outline" className="mt-3">Go to Analyzer</Button>
+                </Link>
               </div>
-            ))}
+            )}
           </CardContent>
         </Card>
 
@@ -259,7 +265,7 @@ export default function DashboardPage() {
       </div>
 
       <div className="text-center text-xs text-slate-400 py-4 border-t border-slate-100">
-        ATS Resume AI &copy; 2026
+        SpellFolio AI &copy; 2026
       </div>
     </main>
   );
